@@ -4,51 +4,71 @@ import java.time.Instant;
 import java.util.Set;
 
 import io.smallrye.jwt.build.Jwt;
-import jakarta.ws.rs.DefaultValue;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import uce.edu.web.api.auth.application.AuthService;
+import uce.edu.web.api.auth.domain.Usuario;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Response;
 
+@Path("/auth")
+@Produces(MediaType.APPLICATION_JSON)
 public class AuthResource {
-    @GET
 
+    @Inject
+    AuthService authService;
+
+    @ConfigProperty(name = "auth.issuer")
+    String issuer;
+
+    @ConfigProperty(name = "auth.token.ttl")
+    long ttl;
+
+    @GET
     @Path("/token")
 
-    public TokenResponse token(
+    public Response token(
 
             @QueryParam("user") String user,
             @QueryParam("password") String password) {
 
-        // Donde se compara el password y el usuaio ontra la base
-        boolean ok = true;
-        String role="admin";
-        if (ok) {
-            String issuer = "matricula-auth";
-
-            long ttl = 3600;
-
-            Instant now = Instant.now();
-
-            Instant exp = now.plusSeconds(ttl);
-
-            String jwt = Jwt.issuer(issuer)
-
-                    .subject(user)
-
-                    .groups(Set.of(role)) // roles: user / admin
-
-                    .issuedAt(now)
-
-                    .expiresAt(exp)
-
-                    .sign();
-
-            return new TokenResponse(jwt, exp.getEpochSecond(), role);
-
-        } else {
-            return null;
+        // Validación básica de parámetros
+        if (user == null || password == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("Faltan parámetros user/password"))
+                    .build();
         }
 
+        return authService.validarUsuario(user, password)
+                .map(usuario -> generarTokenSiEsAdmin(usuario))
+                .orElse(Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(new ErrorResponse("Usuario o password incorrectos"))
+                        .build());
+    }
+
+    private Response generarTokenSiEsAdmin(Usuario usuario) {
+        if (!"admin".equalsIgnoreCase(usuario.getRole())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(new ErrorResponse("No autorizado: requiere role admin"))
+                    .build();
+        }
+
+        Instant now = Instant.now();
+        Instant exp = now.plusSeconds(ttl);
+
+        String jwt = Jwt.issuer(issuer)
+                .subject(usuario.getNombre())
+                .groups(Set.of(usuario.getRole()))   // importante: groups = role
+                .issuedAt(now)
+                .expiresAt(exp)
+                .sign();
+
+        return Response.ok(new TokenResponse(jwt, exp.getEpochSecond(), usuario.getRole())).build();
     }
 
     public static class TokenResponse {
@@ -56,9 +76,7 @@ public class AuthResource {
         public long expiresAt;
         public String role;
 
-        public TokenResponse() {
-        }
-
+        public TokenResponse() {}
         public TokenResponse(String accessToken, long expiresAt, String role) {
             this.accessToken = accessToken;
             this.expiresAt = expiresAt;
@@ -66,4 +84,9 @@ public class AuthResource {
         }
     }
 
+    public static class ErrorResponse {
+        public String message;
+        public ErrorResponse() {}
+        public ErrorResponse(String message) { this.message = message; }
+    }
 }

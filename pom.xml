@@ -56,6 +56,37 @@
             <artifactId>rest-assured</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- REST JSON -->
+        <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-resteasy-jsonb</artifactId>
+        </dependency>
+        
+        <!-- JPA + Panache -->
+        <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-hibernate-orm-panache</artifactId>
+        </dependency>
+        
+        <!-- Driver PostgreSQL -->
+        <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-jdbc-postgresql</artifactId>
+        </dependency>
+        
+        <!-- Validación de JWT (opcional pero recomendado) -->
+        <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-smallrye-jwt</artifactId>
+        </dependency>
+        
+        <!-- Seguridad -->
+        <dependency>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-security</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
