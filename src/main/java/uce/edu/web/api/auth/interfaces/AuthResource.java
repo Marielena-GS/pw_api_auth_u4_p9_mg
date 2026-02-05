@@ -2,10 +2,10 @@ package uce.edu.web.api.auth.interfaces;
 
 import java.time.Instant;
 import java.util.Set;
-
 import io.smallrye.jwt.build.Jwt;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -31,7 +31,7 @@ public class AuthResource {
 
     @GET
     @Path("/token")
-
+    @Produces(MediaType.APPLICATION_JSON)
     public Response token(
 
             @QueryParam("user") String user,
@@ -63,7 +63,7 @@ public class AuthResource {
 
         String jwt = Jwt.issuer(issuer)
                 .subject(usuario.getNombre())
-                .groups(Set.of(usuario.getRole()))   // importante: groups = role
+                .groups(Set.of(usuario.getRole())) // importante: groups = role
                 .issuedAt(now)
                 .expiresAt(exp)
                 .sign();
@@ -76,7 +76,9 @@ public class AuthResource {
         public long expiresAt;
         public String role;
 
-        public TokenResponse() {}
+        public TokenResponse() {
+        }
+
         public TokenResponse(String accessToken, long expiresAt, String role) {
             this.accessToken = accessToken;
             this.expiresAt = expiresAt;
@@ -86,7 +88,12 @@ public class AuthResource {
 
     public static class ErrorResponse {
         public String message;
-        public ErrorResponse() {}
-        public ErrorResponse(String message) { this.message = message; }
+
+        public ErrorResponse() {
+        }
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
     }
 }
